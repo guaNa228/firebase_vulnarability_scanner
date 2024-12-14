@@ -13,7 +13,7 @@ func analyzeLink(url string, resultsChan chan<- string, wg *sync.WaitGroup, sem 
 	defer wg.Done()
 	defer func() { <-sem }() // Release semaphore slot
 
-	htmlContent, err := fetchHTML(url)
+	htmlContent, err := fetchHTML("https://" + url)
 	if err != nil {
 		fmt.Printf("Error fetching HTML for %s: %v\n", url, err)
 		resultsChan <- fmt.Sprintf("%s: No config\n", url)
