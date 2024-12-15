@@ -60,3 +60,14 @@ Also, the actual vulnurability scanner would check only common database instance
 ## Scanning improvement thoughts
 
 Now the scanning is performed in the main page of the domain. Actually, this page may not contain firebase config, at the same time, when other pages of the platform may contain them, so the best existing approach would require checking subpages of the domain too.
+
+## Scanning results
+
+I parallelized the processing of js bundles and did a big scan, the table below shows its results.
+
+ | Type | Number of domains | Firebase configs found | Scan time |
+ |----------|----------|----------|----------|
+ | Major | 779380 | 953 | 3 hrs 57 minutes
+ | Minor | 260 | 6 | 40 sec |
+
+The results of the major scan are currently in results.txt.
