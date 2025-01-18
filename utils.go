@@ -2,48 +2,62 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"net/url"
 	"os"
 	"strings"
 )
 
-// ResolveURL constructs an absolute URL from a base and a relative path.
-func resolveURL(baseURL, relativePath string) string {
-	if strings.HasPrefix(relativePath, "//") {
-		// Prepend the scheme from the base URL
-		parsedBase, err := url.Parse(baseURL)
-		if err != nil || parsedBase.Scheme == "" {
-			return "https:" + relativePath // Default to HTTPS
-		}
-		return parsedBase.Scheme + ":" + relativePath
-	}
-
-	if strings.HasPrefix(relativePath, "http://") || strings.HasPrefix(relativePath, "https://") {
-		return relativePath
-	}
-
-	base, err := url.Parse(baseURL)
-	if err != nil {
-		return relativePath // Fallback to the relative path
-	}
-	ref, err := url.Parse(relativePath)
-	if err != nil {
-		return relativePath // Fallback to the relative path
-	}
-	return base.ResolveReference(ref).String()
+type SecurityConfig struct {
+	URL          string
+	CSPHeader    bool
+	XFrameHeader bool
+	Creds        map[string]string
 }
 
-// GetBaseURL extracts the base URL from a given URL.
-func getBaseURL(rawURL string) string {
-	if !strings.HasPrefix(rawURL, "http://") && !strings.HasPrefix(rawURL, "https://") {
-		rawURL = "https://" + rawURL
+// ResolveURL constructs an absolute URL from a base and a relative path.
+func resolveURL(baseURL, path string) string {
+	// Ensure the base URL is correctly parsed
+	parsedBase, err := url.Parse(baseURL)
+	if err != nil || parsedBase.Scheme == "" || parsedBase.Host == "" {
+		return path // Return the path as-is if the base URL is invalid
 	}
-	parsedURL, err := url.Parse(rawURL)
+
+	// Ensure the base URL has a trailing slash if needed
+	if !strings.HasSuffix(parsedBase.Path, "/") {
+		parsedBase.Path += "/"
+	}
+
+	// Handle paths that are protocol-relative (e.g., "//example.com")
+	if strings.HasPrefix(path, "//") {
+		return parsedBase.Scheme + ":" + path
+	}
+
+	// Handle absolute URLs (e.g., "http://..." or "https://...")
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		return path
+	}
+
+	// Handle relative paths starting with "/" (e.g., "/s/.../vendor.js")
+	if strings.HasPrefix(path, "/") {
+		return parsedBase.Scheme + "://" + parsedBase.Host + path
+	}
+
+	// Handle relative URLs (e.g., "../path/to/file.js")
+	ref, err := url.Parse(path)
 	if err != nil {
-		return rawURL
+		return path // Return the path as-is if parsing fails
 	}
-	return fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
+	return parsedBase.ResolveReference(ref).String()
+}
+
+func addHTTPSIfNeeded(url string) string {
+	httpsPrefix := "https://"
+
+	if strings.HasPrefix(url, httpsPrefix) {
+		return url
+	} else {
+		return httpsPrefix + url
+	}
 }
 
 // Read links from a file.
@@ -60,22 +74,4 @@ func readLinksFromFile(filePath string) ([]string, error) {
 		links = append(links, scanner.Text())
 	}
 	return links, scanner.Err()
-}
-
-// Write results to a file.
-func writeResultsToFile(filePath string, resultsChan <-chan string) error {
-	file, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	writer := bufio.NewWriter(file)
-	for result := range resultsChan {
-		_, err := writer.WriteString(result)
-		if err != nil {
-			return err
-		}
-	}
-	return writer.Flush()
 }

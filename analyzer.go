@@ -2,33 +2,59 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-// AnalyzeLink analyzes a URL for Firebase configuration.
-func analyzeLink(url string, resultsChan chan<- string, wg *sync.WaitGroup, sem chan struct{}) {
+func shouldFilterScript(scriptURL string) bool {
+	// Define patterns to filter out
+	patterns := []string{
+		`\.min\.`,       // Matches .min. in the URL
+		`\d+\.\d+\.\d+`, // Matches version numbers like 1.2.3
+		`ver=`,          // Matches the keyword 'ver'
+		// Add more patterns as needed
+	}
+
+	for _, pattern := range patterns {
+		matched, err := regexp.MatchString(pattern, scriptURL)
+		if err != nil {
+			fmt.Printf("Error matching pattern %s: %v\n", pattern, err)
+			continue
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
+}
+
+func analyzeLink(url string, resultsChan chan<- SecurityConfig, wg *sync.WaitGroup, sem chan struct{}) {
 	defer wg.Done()
 	defer func() { <-sem }() // Release semaphore slot
 
-	htmlContent, err := fetchHTML("https://" + url)
+	htmlContent, headers, baseURL, err := fetchHTML(url)
+
+	res := SecurityConfig{
+		URL:          baseURL,
+		CSPHeader:    headers["CSP Header Present"],
+		XFrameHeader: headers["X-Frame-Options Header Present"],
+		Creds:        map[string]string{},
+	}
+
 	if err != nil {
 		fmt.Printf("Error fetching HTML for %s: %v\n", url, err)
-		resultsChan <- fmt.Sprintf("%s: No config\n", url)
 		return
 	}
 
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlContent))
 	if err != nil {
 		fmt.Printf("Error parsing HTML for %s: %v\n", url, err)
-		resultsChan <- fmt.Sprintf("%s: No config\n", url)
 		return
 	}
 
-	baseURL := getBaseURL(url)
-	foundConfig := false
 	var scriptWg sync.WaitGroup
 	scriptSem := make(chan struct{}, 10) // Limit to 10 concurrent script fetches
 
@@ -41,23 +67,27 @@ func analyzeLink(url string, resultsChan chan<- string, wg *sync.WaitGroup, sem 
 
 			if src, exists := s.Attr("src"); exists {
 				scriptURL := resolveURL(baseURL, src)
+
+				if shouldFilterScript(scriptURL) {
+					fmt.Printf("Filtering out script %s\n", scriptURL)
+					return
+				}
+
 				scriptContent, err := fetchScriptContent(scriptURL)
 				if err != nil {
 					fmt.Printf("Error fetching script content for %s: %v\n", scriptURL, err)
 					return
 				}
 				fmt.Printf("Scanning script %s\n", scriptURL)
-				if containsFirebaseConfig(scriptContent) {
-					config := extractFirebaseKeys(scriptContent)
-					resultsChan <- fmt.Sprintf("%s: %v\n", url, config)
-					foundConfig = true
+				config := findSensitiveData(scriptContent)
+				for key, value := range config {
+					res.Creds[key] = value
 				}
 			} else {
 				scriptContent := s.Text()
-				if containsFirebaseConfig(scriptContent) {
-					config := extractFirebaseKeys(scriptContent)
-					resultsChan <- fmt.Sprintf("%s: %v\n", url, config)
-					foundConfig = true
+				config := findSensitiveData(scriptContent)
+				for key, value := range config {
+					res.Creds[key] = value
 				}
 			}
 		}(s)
@@ -65,7 +95,5 @@ func analyzeLink(url string, resultsChan chan<- string, wg *sync.WaitGroup, sem 
 
 	scriptWg.Wait()
 
-	if !foundConfig {
-		resultsChan <- fmt.Sprintf("%s: No config\n", url)
-	}
+	resultsChan <- res
 }

@@ -9,30 +9,57 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// FetchHTML fetches the HTML content of a given URL.
-func fetchHTML(url string) (string, error) {
-	client := &http.Client{Timeout: 20 * time.Second}
-	resp, err := client.Get(url)
+func checkCSPHeader(resp *http.Response) bool {
+	cspHeader := resp.Header.Get("Content-Security-Policy")
+	return cspHeader != ""
+}
+
+func checkXFrameOptionsHeader(resp *http.Response) bool {
+	xFrameOptionsHeader := resp.Header.Get("X-Frame-Options")
+	return xFrameOptionsHeader != ""
+}
+
+func fetchHTML(url string) (string, map[string]bool, string, error) {
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(addHTTPSIfNeeded(url))
 	if err != nil {
-		return "", err
+		return "", map[string]bool{}, "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to fetch URL: %s", url)
+		return "", map[string]bool{}, "", fmt.Errorf("failed to fetch URL: %s", url)
+	}
+
+	// Check headers
+	cspHeaderPresent := checkCSPHeader(resp)
+	xFrameOptionsHeaderPresent := checkXFrameOptionsHeader(resp)
+
+	// Pass header check results to the channel
+	results := map[string]bool{
+		"CSP Header Present":             cspHeaderPresent,
+		"X-Frame-Options Header Present": xFrameOptionsHeaderPresent,
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return "", err
+		return "", map[string]bool{}, "", err
 	}
 
-	return doc.Html()
+	html, err := doc.Html()
+	if err != nil {
+		return "", map[string]bool{}, "", err
+	}
+
+	// Get the final URL after any redirects
+	finalURL := resp.Request.URL.String()
+
+	return html, results, finalURL, nil
 }
 
 // FetchScriptContent fetches the content of a script from a given URL.
 func fetchScriptContent(url string) (string, error) {
-	client := &http.Client{Timeout: 20 * time.Second}
+	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
 		return "", err
