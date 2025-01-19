@@ -67,7 +67,26 @@ I parallelized the processing of js bundles and did a big scan, the table below 
 
  | Type | Number of domains | Firebase configs found | Scan time |
  |----------|----------|----------|----------|
- | Major | 779380 | 953 | 3 hrs 57 minutes
+ | Major | 779380 | 953 | 3 hrs 57 minutes |
  | Minor | 260 | 6 | 40 sec |
 
-The results of the major scan are currently in results.txt.
+## Database integration
+
+### Reasons
+
+When the project was started, the results of the scanning were just written into the .txt file. It created a lot of problems: results save integrity(the results were written at the end of the scanning, so if something went terribly wrong during the scan process, the intermediate results are lost), RAM overconsumption(when you open the file for writing/appending it is stored in RAM, and if file is large, you can't treat it naively and need to perform a different workarounds, which i was obliged to do for the sake of ability of doing large scans), results readability and analysis (when the results are written into the .txt file even somehow structured, to fully analyze the results of the scan in any case, you need to write a separate script that will parse the results of sknapping, process them and present them in a more or less readable form).
+
+To solve all theese problems, i decided to implement DB integration. I've chosen postgres, as it is generally the default choice for every solution, also i would need Postgres features like transactions and overall perfomance advantage of testing solutions like sqlite, as i have a lot of information being written, and should consider writing integrity. The chosen solution solves the mentioned problems in following way:
+- `Results save integrity`: the urls are processed as a batch of fixed size, so when all urls, which are in a single batch are processed, they are written to a database in a single transaction.
+- `RAM overconsumption`: postgres is a production ready solution, which, obiously, handles this issues for me.
+- `Results readability and analysis`: SQL is a powerful turing complete tool, which allows you to analyze the data in every possible way.
+
+### Database schema
+
+![DB schema](db/db_schema.png)
+
+So, the schema is quite simple and its main purpose is just to store the results of multiple scans, initiated by the user. As the program not only searches for credentials, but also analyses for some header vulnaraibilities, i decided to move credentials to separate table, and just link it to results of the scan of the single url. 
+
+The bigint is used for id columns. I preferred to use bigint, as there are a lot of records generated during the write process and uuid would have taken a lot of time and resources to generate
+
+Also, the DML statement to recreate the schema is included in `db/` directory.
