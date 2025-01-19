@@ -12,10 +12,10 @@ import (
 func shouldFilterScript(scriptURL string) bool {
 	// Define patterns to filter out
 	patterns := []string{
-		`\.min\.`,       // Matches .min. in the URL
-		`\d+\.\d+\.\d+`, // Matches version numbers like 1.2.3
-		`ver=`,          // Matches the keyword 'ver'
-		// Add more patterns as needed
+		`\.min\.`,
+		`\d+\.\d+\.\d+`,
+		`ver=`,
+		`googletagmanager`,
 	}
 
 	for _, pattern := range patterns {

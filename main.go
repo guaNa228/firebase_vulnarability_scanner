@@ -10,15 +10,10 @@ import (
 )
 
 func main() {
-	fmt.Println("Current time:", time.Now())
+	initDB()
+	defer db.Close()
 
-	// Clear the results.txt file
-	file, err := os.OpenFile("results.txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		fmt.Printf("Error clearing results file: %v\n", err)
-		return
-	}
-	file.Close()
+	startTime := time.Now()
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter the name of the txt file (without extension): ")
@@ -39,7 +34,14 @@ func main() {
 		return
 	}
 
-	// Split links into batches of 1000
+	// Insert scan record
+	scanID, err := insertScan(startTime, time.Time{})
+	if err != nil {
+		fmt.Printf("Error inserting scan: %v\n", err)
+		return
+	}
+
+	// Split links into batches of 500
 	batchSize := 500
 	for i := 0; i < len(links); i += batchSize {
 		end := i + batchSize
@@ -64,35 +66,22 @@ func main() {
 			close(resultsChan)
 		}()
 
-		// Open the results file in append mode
-		file, err := os.OpenFile("results.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			fmt.Printf("Error opening results file: %v\n", err)
-			return
-		}
-		defer file.Close()
-
-		writer := bufio.NewWriter(file)
-
+		var results []SecurityConfig
 		for result := range resultsChan {
-			line := fmt.Sprintf("%s => CSPHeader: %v, XFrameHeader: %v\n", result.URL, result.CSPHeader, result.XFrameHeader)
-			if result.URL != "" {
-				if _, err := writer.WriteString(line); err != nil {
-					fmt.Printf("Error writing to results file: %v\n", err)
-					return
-				}
-			}
-			for key, value := range result.Creds {
-				credLine := fmt.Sprintf("%s : %s\n", key, value)
-				if _, err := writer.WriteString(credLine); err != nil {
-					fmt.Printf("Error writing to results file: %v\n", err)
-					return
-				}
-			}
+			results = append(results, result)
 		}
-		writer.Flush()
+
+		err = bulkInsertResultsAndCreds(scanID, results)
+		if err != nil {
+			fmt.Printf("Error performing bulk insert: %v\n", err)
+		}
+
+		err = updateScanEndTime(scanID)
+		if err != nil {
+			fmt.Printf("Error updating scan end time: %v\n", err)
+		}
 	}
 
-	fmt.Println("Results have been written to results.txt")
+	fmt.Println("Results have been written to the database")
 	fmt.Println("Current time is:", time.Now())
 }
