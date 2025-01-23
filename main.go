@@ -13,8 +13,6 @@ func main() {
 	initDB()
 	defer db.Close()
 
-	startTime := time.Now()
-
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter the name of the txt file (without extension): ")
 	filename, err := reader.ReadString('\n')
@@ -33,6 +31,13 @@ func main() {
 		fmt.Printf("Error reading links: %v\n", err)
 		return
 	}
+
+	// Perform the scan
+	performScan(links)
+}
+
+func performScan(links []string) {
+	startTime := time.Now()
 
 	// Insert scan record
 	scanID, err := insertScan(startTime, time.Time{})
