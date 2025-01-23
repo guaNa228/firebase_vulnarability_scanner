@@ -1,38 +1,70 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
+	"net/http"
+	"strconv"
 	"sync"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	initDB()
 	defer db.Close()
 
+	r := gin.Default()
+
+	r.POST("/scan", func(c *gin.Context) {
+		var request struct {
+			Links []string `json:"domains"`
+		}
+
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Clean the input domains
+		cleanedLinks := cleanInput(request.Links)
+
+		go performScan(cleanedLinks)
+
+		c.JSON(http.StatusOK, gin.H{"status": "scan started"})
+	})
+
+	r.GET("/scan/:scan_id", func(c *gin.Context) {
+		scanID, err := strconv.ParseInt(c.Param("scan_id"), 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scan_id"})
+			return
+		}
+
+		results, err := getScanResults(scanID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, results)
+	})
+
+	r.GET("/scans", func(c *gin.Context) {
+		scans, err := getAllScans()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, scans)
+	})
+
+	r.Run(":8080")
+}
+
+func performScan(links []string) {
 	startTime := time.Now()
-
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter the name of the txt file (without extension): ")
-	filename, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Printf("Error reading filename: %v\n", err)
-		return
-	}
-	filename = strings.TrimSpace(filename) // Remove any trailing newline or whitespace
-
-	// Construct the full path to the file
-	filePath := "domains/" + filename + ".txt"
-
-	// Read links from the file
-	links, err := readLinksFromFile(filePath)
-	if err != nil {
-		fmt.Printf("Error reading links: %v\n", err)
-		return
-	}
 
 	// Insert scan record
 	scanID, err := insertScan(startTime, time.Time{})

@@ -12,7 +12,7 @@ import (
 var db *sql.DB
 
 func initDB() {
-	connStr := "user=<your_pg_user> password=<your_password> dbname=<your_db_name> sslmode=disable"
+	connStr := "user=postgres password=f1r2o3l4o5v dbname=vulnarability sslmode=disable"
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
@@ -56,7 +56,7 @@ func bulkInsertResultsAndCreds(scanID int64, results []SecurityConfig) error {
 
 	for _, result := range results {
 		var resultID int64
-		err := resultStmt.QueryRow(scanID, result.URL, result.CSPHeader, result.XFrameHeader).Scan(&resultID)
+		err := resultStmt.QueryRow(scanID, extractDomain(result.URL), result.CSPHeader, result.XFrameHeader).Scan(&resultID)
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error inserting result: %v", err)
