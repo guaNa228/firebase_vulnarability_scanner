@@ -26,7 +26,10 @@ func main() {
 			return
 		}
 
-		go performScan(request.Links)
+		// Clean the input domains
+		cleanedLinks := cleanInput(request.Links)
+
+		go performScan(cleanedLinks)
 
 		c.JSON(http.StatusOK, gin.H{"status": "scan started"})
 	})

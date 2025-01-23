@@ -56,7 +56,7 @@ func bulkInsertResultsAndCreds(scanID int64, results []SecurityConfig) error {
 
 	for _, result := range results {
 		var resultID int64
-		err := resultStmt.QueryRow(scanID, result.URL, result.CSPHeader, result.XFrameHeader).Scan(&resultID)
+		err := resultStmt.QueryRow(scanID, extractDomain(result.URL), result.CSPHeader, result.XFrameHeader).Scan(&resultID)
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error inserting result: %v", err)

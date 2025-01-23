@@ -60,6 +60,22 @@ func addHTTPSIfNeeded(url string) string {
 	}
 }
 
+func cleanInput(domains []string) []string {
+	var cleanedDomains []string
+	for _, domain := range domains {
+		cleanedDomains = append(cleanedDomains, extractDomain(domain))
+	}
+	return cleanedDomains
+}
+
+func extractDomain(url string) string {
+	url = strings.TrimPrefix(url, "https://")
+	url = strings.TrimPrefix(url, "http://")
+	url = strings.TrimSuffix(url, "/")
+
+	return url
+}
+
 // Read links from a file.
 func readLinksFromFile(filePath string) ([]string, error) {
 	file, err := os.Open(filePath)
