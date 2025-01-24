@@ -88,6 +88,30 @@ main {
     /* Darker hover background */
 }
 
+.domain-item .domain-name {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.domain-item .domain-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
+
+.domain-item .domain-details span {
+    display: flex;
+    align-items: center;
+}
+
+.domain-item .domain-details .true {
+    color: #4CAF50;
+}
+
+.domain-item .domain-details .false {
+    color: #FF0000;
+}
+
 .credentials {
     display: none;
     margin-top: 1rem;
@@ -135,4 +159,32 @@ button[type="submit"] {
     /* Adjust the width as needed */
     height: auto !important;
     /* Adjust the height as needed */
+}
+
+.search-container {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+}
+
+.search-container label {
+    margin-bottom: 0.5rem;
+    color: #e0e0e0;
+    /* Light text color */
+}
+
+.search-container input {
+    padding: 0.5rem;
+    background-color: #2c2c2c;
+    /* Darker input background */
+    color: #e0e0e0;
+    /* Light text color */
+    border: 1px solid #3a3a3a;
+    /* Darker border */
+    border-radius: 4px;
+}
+
+.search-container input:focus {
+    outline: none;
+    border-color: #4CAF50;
 }

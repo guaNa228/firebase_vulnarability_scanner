@@ -9,9 +9,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelector('.content').addEventListener('click', (event) => {
-        if (event.target.classList.contains('domain-item')) {
-            const credentialsDiv = event.target.querySelector('.credentials');
-            credentialsDiv.style.display = credentialsDiv.style.display === 'none' ? 'block' : 'none';
+        console.log("Clicked!")
+        let domainItem = event.target.closest('.domain-item');
+        if (domainItem) {
+            const credentialsDiv = domainItem.querySelector('.credentials');
+            if (credentialsDiv.style.display === 'none' || credentialsDiv.style.display === '') {
+                credentialsDiv.style.display = 'block';
+            } else {
+                credentialsDiv.style.display = 'none';
+            }
         }
     });
 
@@ -20,6 +26,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const textarea = document.getElementById('domainTextarea');
         const domains = textarea.value.split('\n').map(domain => domain.trim()).filter(domain => domain);
         sendDomains(domains);
+    });
+
+    document.getElementById('searchBar').addEventListener('input', (event) => {
+        const query = event.target.value.toLowerCase();
+        const domainList = document.querySelector('.domain-list');
+        const domainItems = domainList.querySelectorAll('.domain-item');
+
+        domainItems.forEach(item => {
+            const domainName = item.querySelector('.domain-name').textContent.toLowerCase();
+            if (domainName.includes(query)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
     });
 });
 
@@ -108,10 +129,12 @@ function fetchScanDetails(scanId) {
                 const domainItem = document.createElement('div');
                 domainItem.classList.add('domain-item');
                 domainItem.innerHTML = `
-                    <p>Domain: ${domain.domain}</p>
-                    <p>CSP: ${domain.csp}</p>
-                    <p>X-Frame: ${domain.xframe}</p>
-                    <p>Credentials: ${Object.keys(domain.credentials).length}</p>
+                    <div class="domain-name">${domain.domain}</div>
+                    <div class="domain-details">
+                        <span>CSP: ${domain.csp ? '✔️' : '❌'}</span>
+                        <span>X-Frame: ${domain.xframe ? '✔️' : '❌'}</span>
+                        <span>Credentials: ${Object.keys(domain.credentials).length}</span>
+                    </div>
                     <div class="credentials">
                         ${Object.entries(domain.credentials).map(([key, value]) => `<p>${key}: ${value}</p>`).join('')}
                     </div>
