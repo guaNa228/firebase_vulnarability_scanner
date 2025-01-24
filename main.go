@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +16,15 @@ func main() {
 	defer db.Close()
 
 	r := gin.Default()
+
+	// Use CORS middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	r.POST("/scan", func(c *gin.Context) {
 		var request struct {
@@ -108,6 +118,7 @@ func performScan(links []string) {
 			fmt.Printf("Error performing bulk insert: %v\n", err)
 		}
 
+		// Update scan end time after each batch
 		err = updateScanEndTime(scanID)
 		if err != nil {
 			fmt.Printf("Error updating scan end time: %v\n", err)

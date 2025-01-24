@@ -61,10 +61,19 @@ func addHTTPSIfNeeded(url string) string {
 }
 
 func cleanInput(domains []string) []string {
+	domainSet := make(map[string]struct{})
 	var cleanedDomains []string
+
 	for _, domain := range domains {
-		cleanedDomains = append(cleanedDomains, extractDomain(domain))
+		domain = extractDomain(domain)
+
+		// Add to set if not already present
+		if _, exists := domainSet[domain]; !exists {
+			domainSet[domain] = struct{}{}
+			cleanedDomains = append(cleanedDomains, domain)
+		}
 	}
+
 	return cleanedDomains
 }
 
