@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type SecurityConfig struct {
@@ -61,10 +63,19 @@ func addHTTPSIfNeeded(url string) string {
 }
 
 func cleanInput(domains []string) []string {
+	domainSet := make(map[string]struct{})
 	var cleanedDomains []string
+
 	for _, domain := range domains {
-		cleanedDomains = append(cleanedDomains, extractDomain(domain))
+		domain = extractDomain(domain)
+
+		// Add to set if not already present
+		if _, exists := domainSet[domain]; !exists {
+			domainSet[domain] = struct{}{}
+			cleanedDomains = append(cleanedDomains, domain)
+		}
 	}
+
 	return cleanedDomains
 }
 
@@ -74,6 +85,19 @@ func extractDomain(url string) string {
 	url = strings.TrimSuffix(url, "/")
 
 	return url
+}
+
+func formatDuration(d time.Duration) string {
+	hours := int(d.Hours())
+	minutes := int(d.Minutes()) % 60
+	seconds := d.Seconds() - float64(hours*3600+minutes*60)
+
+	if hours > 0 {
+		return fmt.Sprintf("%dh%dm%.2fs", hours, minutes, seconds)
+	} else if minutes > 0 {
+		return fmt.Sprintf("%dm%.2fs", minutes, seconds)
+	}
+	return fmt.Sprintf("%.2fs", seconds)
 }
 
 // Read links from a file.

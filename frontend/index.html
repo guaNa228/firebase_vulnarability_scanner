@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Security Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <main>
+        <div class="sidebar"></div>
+        <div class="content">
+            <div class="scan-info"></div>
+            <div class="charts-container">
+                <canvas id="cspChart"></canvas>
+                <canvas id="xFrameChart"></canvas>
+            </div>
+            <div class="search-container">
+                <label for="searchBar">Filter domains</label>
+                <input type="text" id="searchBar" placeholder="Search domains...">
+            </div>
+            <div class="domain-list"></div>
+        </div>
+        <div class="form">
+            <h2>New scan</h2>
+            <form id="domainForm">
+                <textarea id="domainTextarea" placeholder="Paste domains here"></textarea>
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </main>
+    <script type="text/javascript" src="main.js"></script>
+</body>
+
+</html>
