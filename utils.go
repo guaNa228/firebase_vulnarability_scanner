@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 )
@@ -98,20 +96,4 @@ func formatDuration(d time.Duration) string {
 		return fmt.Sprintf("%dm%.2fs", minutes, seconds)
 	}
 	return fmt.Sprintf("%.2fs", seconds)
-}
-
-// Read links from a file.
-func readLinksFromFile(filePath string) ([]string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var links []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		links = append(links, scanner.Text())
-	}
-	return links, scanner.Err()
 }
