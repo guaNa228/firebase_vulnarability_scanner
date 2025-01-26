@@ -52,7 +52,7 @@ func getScanResults(scanID int64) ([]map[string]interface{}, error) {
 
 func getAllScans() ([]map[string]interface{}, error) {
 	rows, err := db.Query(`
-        SELECT s.id, s.start, s.end, COUNT(r.id) as domain_count
+        SELECT s.id, s.start, s.end, COUNT(r.id) as domain_count, MIN(r.url) as first_domain
         FROM scans s
         LEFT JOIN results r ON s.id = r.scan
         GROUP BY s.id
@@ -68,17 +68,19 @@ func getAllScans() ([]map[string]interface{}, error) {
 		var id int64
 		var startTime, endTime time.Time
 		var domainCount int
+		var firstDomain sql.NullString
 
-		if err := rows.Scan(&id, &startTime, &endTime, &domainCount); err != nil {
+		if err := rows.Scan(&id, &startTime, &endTime, &domainCount, &firstDomain); err != nil {
 			return nil, fmt.Errorf("error scanning row: %v", err)
 		}
 
-		duration := endTime.Sub(startTime).String()
+		duration := formatDuration(endTime.Sub(startTime))
 		scans = append(scans, map[string]interface{}{
 			"id":           id,
 			"start_time":   startTime,
 			"duration":     duration,
 			"domain_count": domainCount,
+			"first_domain": firstDomain.String,
 		})
 	}
 

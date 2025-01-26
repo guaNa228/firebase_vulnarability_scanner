@@ -2,10 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchScans();
 
     document.querySelector('.sidebar').addEventListener('click', (event) => {
-        if (event.target.classList.contains('scan-line')) {
-            const scanId = event.target.dataset.scanId;
-            fetchScanDetails(scanId);
-        }
+        let scanLine = event.target.closest('.scan-line');
+        const scanId = scanLine.dataset.scanId;
+        highlightScan(scanId);
+        fetchScanDetails(scanId);
     });
 
     document.querySelector('.content').addEventListener('click', (event) => {
@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let cspChartInstance = null;
 let xFrameChartInstance = null;
+let lastClickedScanId = null;
 
 function categorizeScanDate(date) {
     const today = new Date();
@@ -62,19 +63,6 @@ function categorizeScanDate(date) {
         return 'Previous month';
     } else {
         return 'Earlier';
-    }
-}
-
-function formatDuration(duration) {
-    const seconds = parseFloat(duration);
-    if (seconds < 60) {
-        return `${seconds.toFixed(2)} seconds`;
-    } else if (seconds < 3600) {
-        const minutes = seconds / 60;
-        return `${minutes.toFixed(2)} minutes`;
-    } else {
-        const hours = seconds / 3600;
-        return `${hours.toFixed(2)} hours`;
     }
 }
 
@@ -103,11 +91,39 @@ function fetchScans() {
                     const scanLine = document.createElement('div');
                     scanLine.classList.add('scan-line');
                     scanLine.dataset.scanId = scan.id;
-                    scanLine.textContent = `${scan.domain_count} domains, ${formatDuration(scan.duration)}`;
+                    scanLine.innerHTML = `
+                        <div class="first-domain">${removeHttps(scan.first_domain)}</div>
+                        <div class="scan-info">
+                            ${scan.domain_count} domains, ${scan.duration}
+                        </div>
+                    `;
                     sidebar.appendChild(scanLine);
                 });
             }
         });
+}
+
+function removeHttps(url) {
+    return url.replace(/^https?:\/\//, '').split('/')[0];
+}
+
+function highlightScan(scanId) {
+    // Remove highlight from the previously clicked scan
+    if (lastClickedScanId !== null) {
+        const previousScanLine = document.querySelector(`.scan-line[data-scan-id="${lastClickedScanId}"]`);
+        if (previousScanLine) {
+            previousScanLine.classList.remove('highlight');
+        }
+    }
+
+    // Add highlight to the newly clicked scan
+    const newScanLine = document.querySelector(`.scan-line[data-scan-id="${scanId}"]`);
+    if (newScanLine) {
+        newScanLine.classList.add('highlight');
+    }
+
+    // Update the last clicked scan ID
+    lastClickedScanId = scanId;
 }
 
 function fetchScanDetails(scanId) {
