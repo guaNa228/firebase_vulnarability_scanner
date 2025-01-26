@@ -1,8 +1,20 @@
 # Firebase vulnurability scanner
 
-Project is designed to parse JS bundles of the given websites and analyze them on subject of having firebase credentials, which could be used for further pentesting.
+Project is designed to parse JS bundles of the given websites and analyze them on subject of having forgotten credentials, as well as the knowlable http vulnarabilities, which could be used for further pentesting.
 
 Also it includes scraping module, which allows getting urls of some ai startups, which js bundles would be further scanned.
+
+## Project launch
+
+### Prerequsites
+
+- `GO >=1.23.4`: So, for the backend app to function you would need a golang installed on your system and all the go libraries used, which are listed in `go.mod` file.
+- `Postgre DB`: For the storage of scans. The schema can be recteated using DML statement in `db/create.sql`.
+
+### Launch
+
+First launch the Postgre, then run `go run .` in the root directory of the project. The should function 'from the box', as it is written with pure JS, and CORS headers are written as well.
+
 
 ## Project structure
 
@@ -90,3 +102,19 @@ So, the schema is quite simple and its main purpose is just to store the results
 The bigint is used for id columns. I preferred to use bigint, as there are a lot of records generated during the write process and uuid would have taken a lot of time and resources to generate
 
 Also, the DML statement to recreate the schema is included in `db/` directory.
+
+## API
+
+So, the api was primarily develop given the functionality of the frontend. It has 1 POST endpoint and 2 GET endpoints.
+
+- `/scan`: user provides the list of domains in JSON body of the request and the scan on these domains is being performed
+- `/scan/:id`: gets an info about specific scan by its id, including info about all domains and credentials found for each domain 
+- `/scans`: gets an info about all the scans being performed so far, for each scan the total number of domains, duration and first domain in alphabetic order is gotten, as it is used as visual id of the scan on the frontend 
+
+## Frontend
+
+For the user to be able to see results of the scans in a comfortable way as the primary reason and also for user to be able to launch the scans from the UI the frontend part of the service was created.
+
+![DB schema](front.png)
+
+It give user info about all scans, which were performed so far, using the API requests. Also it gives user a chance to fitler the domains, which were in the scan and look up info about CSP and XFrame headers of each domain and also click on each domain card and see credentials found in the js bundle of this exact domain.
